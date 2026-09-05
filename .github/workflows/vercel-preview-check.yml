@@ -1,4 +1,4 @@
-name: Vercel Preview Check
+name: Vercel Public Deployment Check
 
 on:
   push:
@@ -11,21 +11,27 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
-    timeout-minutes: 4
+    timeout-minutes: 5
     steps:
-      - name: Diagnose deployed preview over public internet
+      - name: Verify Foundry public deployment
         env:
-          PREVIEW_URL: https://foundry-test-v01-neuopr58p-jeawook.vercel.app
+          PUBLIC_URL: https://foundry-test-v01-public-jeawook.vercel.app
         run: |
-          CODE=$(curl -L -sS -D /tmp/headers.txt -o /tmp/home.html -w '%{http_code}' "$PREVIEW_URL/" || true)
-          echo "status=$CODE bytes=$(wc -c </tmp/home.html 2>/dev/null || echo 0)"
+          OK=0
+          for i in $(seq 1 36); do
+            CODE=$(curl -L -sS -D /tmp/headers.txt -o /tmp/home.html -w '%{http_code}' "$PUBLIC_URL/" || true)
+            echo "attempt=$i status=$CODE bytes=$(wc -c </tmp/home.html 2>/dev/null || echo 0)"
+            if [ "$CODE" = "200" ] && grep -q 'AI IDEA VALIDATION PLATFORM' /tmp/home.html; then OK=1; break; fi
+            sleep 5
+          done
           echo '--- response headers ---'
-          sed -n '1,40p' /tmp/headers.txt
+          sed -n '1,30p' /tmp/headers.txt
           echo '--- title ---'
           grep -o -m1 '<title[^>]*>[^<]*</title>' /tmp/home.html || true
-          echo '--- marker scan ---'
-          if grep -q 'AI IDEA VALIDATION PLATFORM' /tmp/home.html; then echo 'FOUND=FOUNDRY_APP'; exit 0; fi
-          if grep -qi 'Vercel Authentication\|Deployment Protection\|Log in to Vercel\|Sign in to Vercel' /tmp/home.html; then echo 'FOUND=VERCEL_PROTECTION'; exit 0; fi
-          echo 'FOUND=UNKNOWN_200_RESPONSE'
-          head -c 800 /tmp/home.html | tr '\n' ' '
-          exit 1
+          test "$OK" = "1"
+          LOGIN=$(curl -L -sS -o /tmp/login.html -w '%{http_code}' "$PUBLIC_URL/login")
+          test "$LOGIN" = "200"
+          grep -q 'FOUNDRY TEST' /tmp/login.html
+          PURCHASE=$(curl -L -sS -o /tmp/purchase.html -w '%{http_code}' "$PUBLIC_URL/purchase")
+          test "$PURCHASE" = "200"
+          echo 'Foundry public deployment is reachable and serving the expected app.'
