@@ -1,0 +1,27 @@
+name: Foundry Test Build
+
+on:
+  push:
+    branches: [foundry-test-v01]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Unpack Foundry source
+        run: node unpack.mjs
+      - name: Install dependencies
+        run: npm install
+      - name: Next.js build
+        run: npm run build
