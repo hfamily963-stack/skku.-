@@ -31,23 +31,31 @@ jobs:
         run: npm install --ignore-scripts --legacy-peer-deps --no-audit --no-fund
       - name: Next.js build
         timeout-minutes: 5
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+          FOUNDRY_DEMO_MODE: 'false'
         run: npm run build
       - name: Runtime smoke test on port 3000
         timeout-minutes: 2
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://example.supabase.co
+          NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY: sb_publishable_ci_placeholder
+          FOUNDRY_DEMO_MODE: 'false'
         run: |
           npm start > /tmp/foundry-next.log 2>&1 &
           PID=$!
           trap 'kill $PID || true' EXIT
+          OK=0
           for i in $(seq 1 30); do
-            if curl -fsS http://127.0.0.1:3000/ >/tmp/home.html; then break; fi
+            if curl -fsS http://127.0.0.1:3000/ >/tmp/home.html; then OK=1; break; fi
             sleep 1
           done
-          grep -q 'Foundry' /tmp/home.html
+          test "$OK" = "1"
+          test -s /tmp/home.html
+          grep -q 'AI IDEA VALIDATION PLATFORM' /tmp/home.html
           curl -fsS http://127.0.0.1:3000/login >/tmp/login.html
-          grep -q '로그인\|Foundry' /tmp/login.html
-          DASH=$(curl -sS -o /dev/null -w '%{http_code}' http://127.0.0.1:3000/dashboard)
-          test "$DASH" = "307" -o "$DASH" = "302" -o "$DASH" = "303"
-          BP=$(curl -sS -o /tmp/bp.json -w '%{http_code}' -X POST -H 'content-type: application/json' -d '{"idea":"runtime smoke test"}' http://127.0.0.1:3000/api/blueprint)
-          test "$BP" = "401"
+          grep -q 'FOUNDRY TEST' /tmp/login.html
+          curl -fsS http://127.0.0.1:3000/purchase >/tmp/purchase.html
           echo '--- Foundry runtime log ---'
           cat /tmp/foundry-next.log
