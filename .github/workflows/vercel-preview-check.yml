@@ -1,0 +1,32 @@
+name: Vercel Preview Check
+
+on:
+  push:
+    branches: [foundry-test-v01]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 4
+    steps:
+      - name: Verify deployed preview over public internet
+        env:
+          PREVIEW_URL: https://foundry-test-v01-neuopr58p-jeawook.vercel.app
+        run: |
+          OK=0
+          for i in $(seq 1 36); do
+            CODE=$(curl -L -sS -o /tmp/home.html -w '%{http_code}' "$PREVIEW_URL/" || true)
+            echo "attempt=$i status=$CODE bytes=$(wc -c </tmp/home.html 2>/dev/null || echo 0)"
+            if [ "$CODE" = "200" ]; then OK=1; break; fi
+            sleep 5
+          done
+          test "$OK" = "1"
+          grep -q 'AI IDEA VALIDATION PLATFORM' /tmp/home.html
+          CODE_LOGIN=$(curl -L -sS -o /tmp/login.html -w '%{http_code}' "$PREVIEW_URL/login")
+          test "$CODE_LOGIN" = "200"
+          grep -q 'FOUNDRY TEST' /tmp/login.html
+          echo "Preview homepage and login are publicly reachable."
