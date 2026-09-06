@@ -1,4 +1,4 @@
-name: Vercel Smoke Diagnose
+name: Vercel Fetch Smoke Diagnose
 
 on:
   push:
@@ -12,10 +12,10 @@ jobs:
   diagnose:
     runs-on: ubuntu-latest
     steps:
-      - name: Diagnose Vercel smoke URLs
+      - name: Diagnose Vercel fetch smoke URLs
         env:
-          STABLE_URL: https://foundry-vercel-public-smoke-jeawook.vercel.app
-          DEPLOY_URL: https://foundry-vercel-public-smoke-gn6swlpd1-jeawook.vercel.app
+          STABLE_URL: https://foundry-vercel-fetch-smoke-jeawook.vercel.app
+          DEPLOY_URL: https://foundry-vercel-fetch-smoke-8yi29lw64-jeawook.vercel.app
         run: |
           for URL in "$STABLE_URL" "$DEPLOY_URL"; do
             echo "=== $URL ==="
@@ -23,6 +23,6 @@ jobs:
             echo "status=$CODE bytes=$(wc -c </tmp/b.html 2>/dev/null || echo 0)"
             grep -i -E '^(HTTP/|location:|x-vercel-error:|server:)' /tmp/h.txt | head -20 || true
             grep -o -m1 '<title[^>]*>[^<]*</title>' /tmp/b.html || true
-            if grep -q 'FOUNDRY VERCEL PUBLIC SMOKE' /tmp/b.html; then echo 'MARKER=PUBLIC_SMOKE'; fi
+            if grep -q 'FETCH_OK' /tmp/b.html; then echo 'MARKER=FETCH_OK'; fi
             if grep -qi 'Vercel Authentication\|Deployment Protection\|Log in to Vercel\|Sign in to Vercel' /tmp/b.html; then echo 'MARKER=VERCEL_PROTECTION'; fi
           done
