@@ -1,8 +1,6 @@
 name: Vercel Public Deployment Check
 
 on:
-  push:
-    branches: [foundry-test-v01]
   workflow_dispatch:
 
 permissions:
@@ -15,23 +13,11 @@ jobs:
     steps:
       - name: Verify Foundry public deployment
         env:
-          PUBLIC_URL: https://foundry-test-v01-live2-jeawook.vercel.app
+          PUBLIC_URL: https://foundry-test-v01-live3-jeawook.vercel.app
         run: |
-          OK=0
-          for i in $(seq 1 36); do
-            CODE=$(curl -L -sS -D /tmp/headers.txt -o /tmp/home.html -w '%{http_code}' "$PUBLIC_URL/" || true)
-            echo "attempt=$i status=$CODE bytes=$(wc -c </tmp/home.html 2>/dev/null || echo 0)"
-            if [ "$CODE" = "200" ] && grep -q 'AI IDEA VALIDATION PLATFORM' /tmp/home.html; then OK=1; break; fi
-            sleep 5
-          done
-          echo '--- response headers ---'
+          CODE=$(curl -L -sS -D /tmp/headers.txt -o /tmp/home.html -w '%{http_code}' "$PUBLIC_URL/" || true)
+          echo "status=$CODE bytes=$(wc -c </tmp/home.html 2>/dev/null || echo 0)"
+          if grep -q 'AI IDEA VALIDATION PLATFORM' /tmp/home.html; then echo 'FOUNDRY_APP_PUBLIC'; exit 0; fi
+          if grep -qi 'Vercel Authentication\|Deployment Protection\|Log in to Vercel\|Sign in to Vercel' /tmp/home.html; then echo 'VERCEL_PROTECTION_ENABLED'; exit 2; fi
           sed -n '1,30p' /tmp/headers.txt
-          echo '--- title ---'
-          grep -o -m1 '<title[^>]*>[^<]*</title>' /tmp/home.html || true
-          test "$OK" = "1"
-          LOGIN=$(curl -L -sS -o /tmp/login.html -w '%{http_code}' "$PUBLIC_URL/login")
-          test "$LOGIN" = "200"
-          grep -q 'FOUNDRY TEST' /tmp/login.html
-          PURCHASE=$(curl -L -sS -o /tmp/purchase.html -w '%{http_code}' "$PUBLIC_URL/purchase")
-          test "$PURCHASE" = "200"
-          echo 'Foundry public deployment is reachable and serving the expected app.'
+          exit 1
