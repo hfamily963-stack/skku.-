@@ -15,7 +15,7 @@ jobs:
     steps:
       - name: Verify Foundry public deployment
         env:
-          PUBLIC_URL: https://foundry-test-v01-public-jeawook.vercel.app
+          PUBLIC_URL: https://foundry-test-v01-live2-jeawook.vercel.app
         run: |
           OK=0
           for i in $(seq 1 36); do
