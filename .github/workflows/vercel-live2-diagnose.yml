@@ -1,0 +1,28 @@
+name: Vercel Live2 Diagnose
+
+on:
+  push:
+    branches: [foundry-test-v01]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  diagnose:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Diagnose Vercel URLs
+        env:
+          STABLE_URL: https://foundry-test-v01-live2-jeawook.vercel.app
+          DEPLOY_URL: https://foundry-test-v01-live2-80iahgi92-jeawook.vercel.app
+        run: |
+          for URL in "$STABLE_URL" "$DEPLOY_URL"; do
+            echo "=== $URL ==="
+            CODE=$(curl -L -sS -D /tmp/h.txt -o /tmp/b.html -w '%{http_code}' "$URL/" || true)
+            echo "status=$CODE bytes=$(wc -c </tmp/b.html 2>/dev/null || echo 0)"
+            grep -i -E '^(HTTP/|location:|x-vercel-error:|server:)' /tmp/h.txt | head -20 || true
+            grep -o -m1 '<title[^>]*>[^<]*</title>' /tmp/b.html || true
+            if grep -q 'AI IDEA VALIDATION PLATFORM' /tmp/b.html; then echo 'MARKER=FOUNDRY_APP'; fi
+            if grep -qi 'Vercel Authentication\|Deployment Protection\|Log in to Vercel\|Sign in to Vercel' /tmp/b.html; then echo 'MARKER=VERCEL_PROTECTION'; fi
+          done
